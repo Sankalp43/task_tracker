@@ -6,8 +6,10 @@ from supabase import create_client, Client
 import hashlib
 
 # --- CONFIGURE YOUR SUPABASE ---
-SUPABASE_URL = "https://lhvjuqiedqmunnhpjwpu.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxodmp1cWllZHFtdW5uaHBqd3B1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDcyMjQ4MCwiZXhwIjoyMDYwMjk4NDgwfQ.uQHbbFrFNmBuh-xUg2bq1OyFHGwY7olK9ui8l8d5Y3c"
+import streamlit as st
+
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # --- CATEGORY COLORS ---
@@ -93,7 +95,7 @@ with st.sidebar:
         if submitted and user and task:
             add_task(user, task, points, category)
             st.success("Task added! 💪")
-            st.experimental_rerun()
+            st.rerun()
 
 # --- LOAD DATA ---
 df = load_tasks()
@@ -169,21 +171,30 @@ if not df.empty:
                         f'<img src="{avatar_url(user)}" width="60"/><br>'
                         f'<h3>👤 {user}</h3>', unsafe_allow_html=True)
             user_tasks = df[(df['user'] == user) & (~df['status'])]
+
+            #####################
             for _, task in user_tasks.iterrows():
                 color = CATEGORY_COLORS.get(task['category'], "#95a5a6")
                 task_key = f"{user}-{task['task']}-{task['id']}"
-                if st.checkbox(
-                    f"{task['task']} <span class='points-badge'>{task['points']}pts</span>"
-                    f"<span class='category-badge' style='background:{color}'>{task['category']}</span>",
+                checked = st.checkbox(
+                    task['task'],
                     key=task_key,
                     help=f"Added on {task['date'].strftime('%Y-%m-%d')}",
-                    unsafe_allow_html=True
-                ):
-                    complete_task(task['id'])
-                    st.experimental_rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-else:
-    st.info("No tasks yet - add some in the sidebar! 🌟")
+                    value=task['status']
+                )
+                    # complete_task(task['id'])
+                    # st.rerun()
+            st.markdown(
+                f"<span class='points-badge'>{task['points']}pts</span>"
+                f"<span class='category-badge' style='background:{color}'>{task['category']}</span>",
+                unsafe_allow_html=True
+            )
+            if checked and not task['status']:
+                complete_task(task['id'])
+                st.rerun()
+#             st.markdown('</div>', unsafe_allow_html=True)
+# else:
+#     st.info("No tasks yet - add some in the sidebar! 🌟")
 
 # --- HOW TO USE ---
 st.markdown("---")
