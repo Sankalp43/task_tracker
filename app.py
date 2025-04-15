@@ -105,13 +105,17 @@ if not df.empty:
 else:
     st.info("No tasks yet. Add some in the sidebar! 🌟")
 
-# --- LEADERBOARD ---
+## NEW LEADERBOARD SECTION  
 st.subheader("🏆 Leaderboard")
 if not df.empty:
     totals = df[df['status']].groupby('user')['points'].sum().reset_index()
     totals = totals.sort_values(by="points", ascending=False)
-    col1, col2, col3 = st.columns([2, 4, 2])
+    
+    # Create two columns for leaderboard and achievements
+    col1, col2 = st.columns(2)
+    
     with col1:
+        st.subheader("👤 Team Members")
         for _, row in totals.iterrows():
             st.image(avatar_url(row['user']), width=40)
             st.markdown(f"**{row['user']}**")
@@ -119,22 +123,55 @@ if not df.empty:
             for badge in get_badges(row['points']):
                 st.markdown(f"{badge}")
             st.markdown("---")
+            
     with col2:
-        st.write("### Team Progress")
-        st.altair_chart(alt.Chart(totals).mark_bar().encode(
-            x=alt.X('user', sort='-y'),
-            y='points',
-            color=alt.Color('user', legend=None)
-        ), use_container_width=True)
-    with col3:
-        st.write("### Achievements")
+        st.subheader("🏅 Achievements")
         for _, row in totals.iterrows():
+            st.image(avatar_url(row['user']), width=40)
             st.markdown(f"**{row['user']}**")
             for badge in get_badges(row['points']):
                 st.markdown(f"{badge}")
             st.markdown("---")
-else:
-    st.info("No points yet - add some tasks! ✨")
+    
+    # Full-width chart below the columns
+    st.subheader("📊 Team Progress")
+    st.altair_chart(alt.Chart(totals).mark_bar().encode(
+        x=alt.X('user', sort='-y'),
+        y='points',
+        color=alt.Color('user', legend=None)
+    ), use_container_width=True)
+
+
+# --- LEADERBOARD ---
+# st.subheader("🏆 Leaderboard")
+# if not df.empty:
+#     totals = df[df['status']].groupby('user')['points'].sum().reset_index()
+#     totals = totals.sort_values(by="points", ascending=False)
+#     col1, col2, col3 = st.columns([2, 4, 2])
+#     with col1:
+#         for _, row in totals.iterrows():
+#             st.image(avatar_url(row['user']), width=40)
+#             st.markdown(f"**{row['user']}**")
+#             st.markdown(f"<span class='points-badge'>{row['points']} pts</span>", unsafe_allow_html=True)
+#             for badge in get_badges(row['points']):
+#                 st.markdown(f"{badge}")
+#             st.markdown("---")
+#     with col2:
+#         st.write("### Team Progress")
+#         st.altair_chart(alt.Chart(totals).mark_bar().encode(
+#             x=alt.X('user', sort='-y'),
+#             y='points',
+#             color=alt.Color('user', legend=None)
+#         ), use_container_width=True)
+#     with col3:
+#         st.write("### Achievements")
+#         for _, row in totals.iterrows():
+#             st.markdown(f"**{row['user']}**")
+#             for badge in get_badges(row['points']):
+#                 st.markdown(f"{badge}")
+#             st.markdown("---")
+# else:
+#     st.info("No points yet - add some tasks! ✨")
 
 # --- WEEKLY/MONTHLY PROGRESS ---
 st.subheader("📈 Progress Over Time")
@@ -184,14 +221,14 @@ if not df.empty:
                 )
                     # complete_task(task['id'])
                     # st.rerun()
-            st.markdown(
-                f"<span class='points-badge'>{task['points']}pts</span>"
-                f"<span class='category-badge' style='background:{color}'>{task['category']}</span>",
-                unsafe_allow_html=True
-            )
-            if checked and not task['status']:
-                complete_task(task['id'])
-                st.rerun()
+                st.markdown(
+                    f"<span class='points-badge'>{task['points']}pts</span>"
+                    f"<span class='category-badge' style='background:{color}'>{task['category']}</span>",
+                    unsafe_allow_html=True
+                )
+                if checked and not task['status']:
+                    complete_task(task['id'])
+                    st.rerun()
 #             st.markdown('</div>', unsafe_allow_html=True)
 # else:
 #     st.info("No tasks yet - add some in the sidebar! 🌟")
