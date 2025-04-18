@@ -6,11 +6,45 @@ import altair as alt
 from datetime import datetime
 from supabase import create_client, Client
 import hashlib
+import yagmail
 
 # --- SUPABASE CONFIGURATION ---
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
+# utils/email_utils.py
+
+
+SENDER_EMAIL = st.secrets["SENDER_EMAIL"]
+APP_PASSWORD = st.secrets["APP_PASSWORD"]  # Keep this secure
+
+yag = yagmail.SMTP(SENDER_EMAIL, APP_PASSWORD)
+
+def send_welcome_email(to_email, name):
+    subject = f"Welcome to Team Task Tracker, {name}! 🎉"
+    body = f"""
+    Hi {name},
+
+    Welcome aboard! We're excited to have you using the Team Task Tracker 🚀.
+
+    You can start adding tasks, earning points, and tracking your daily wins.
+    Let's get productive! 💪
+
+    Cheers,  
+    - Team Task Tracker
+    """
+    print(f"Sending email to {to_email}...")
+    yag.send(to_email, subject, body)
+
+
+
+
+
+
+
+
 
 # --- CONSTANTS ---
 CATEGORY_COLORS = {
@@ -44,7 +78,15 @@ def load_tasks():
     return pd.DataFrame(data.data) if data.data else pd.DataFrame(columns=[
         "id", "user", "task", "points", "status", "date", "completed_date", "category"])
 
-def add_task(user, task, points, category):
+DEADLINE_CATEGORIES = [
+    "⏳ No Deadline",
+    "⏰ Morning",
+    "🌤️ Afternoon",
+    "🌇 Evening ",
+    "🌌 End of Day"
+]
+
+def add_task(user, task, points, category, deadline_category):
     supabase.table("tasks").insert({
         "user": user,
         "task": task,
@@ -52,9 +94,19 @@ def add_task(user, task, points, category):
         "status": False,
         "date": datetime.now().strftime("%Y-%m-%d"),
         "completed_date": None,
-        "category": category
+        "category": category,
+        "deadline_category": deadline_category
     }).execute()
     st.cache_data.clear()
+
+def add_user(name, email):
+    supabase.table("users").insert({
+        "user": name,
+        "mail": email,
+        "created_at": datetime.now().isoformat()
+    }).execute()
+    st.cache_data.clear()
+
 
 def complete_task(task_id):
     supabase.table("tasks").update({
@@ -72,22 +124,82 @@ def edit_task(task_id, new_task, new_points, new_category):
     st.cache_data.clear()
 
 # --- SIDEBAR ---
+# def show_sidebar():
+#     st.sidebar.title("Add New Task ➕")
+#     with st.sidebar.form("add_task"):
+#         user = st.text_input("👤 Your Name")
+#         task = st.text_input("📝 Task Description")
+#         points = st.slider("⭐ Points Value", 1, 10, 3)
+#         category = st.selectbox("🏷️ Category", list(CATEGORY_COLORS.keys()))
+#         deadline_category = st.selectbox("📅 Task Deadline", DEADLINE_CATEGORIES)
+#         if st.form_submit_button("Add Task") and user and task:
+#             add_task(user, task, points, category, deadline_category)
+#             st.success("Task added successfully!💪")
+#             st.rerun()
+#     st.sidebar.markdown("---")
+#     st.sidebar.title("View Options 🛠️")
+#     dark_mode = st.sidebar.toggle("Dark Mode")
+#     admin_mode = st.sidebar.checkbox("Admin Mode (View All Users)", value=True)
+#     return dark_mode, admin_mode
+
+@st.cache_data(ttl=60)
+def load_users():
+    data = supabase.table("users").select("user").execute()
+    # print(data)
+    return sorted([user["user"] for user in data.data]) if data.data else []
+
 def show_sidebar():
-    st.sidebar.title("Add New Task ➕")
+    st.sidebar.title("👤 Select or Create User")
+
+    users = load_users()
+    user_mode = st.sidebar.radio("Choose:", ["Existing User", "New User"])
+
+    if user_mode == "Existing User" and users:
+        selected_user = st.sidebar.selectbox("Select your name", users)
+        st.session_state.user = selected_user
+    elif user_mode == "New User":
+        new_name = st.sidebar.text_input("Enter your name")
+        new_email = st.sidebar.text_input("Enter your email")
+        if st.sidebar.button("Create User") and new_name and new_email:
+            existing = supabase.table("users").select("id").eq("mail", new_email).execute().data
+
+            if existing:
+                st.warning("A user with this email already exists. Please use a different email or choose 'Existing User'.")
+            else:
+                add_user(new_name, new_email)
+                send_welcome_email(new_email, new_name)
+                st.session_state.user = new_name
+                st.success(f"Welcome, {new_name}!")
+                st.rerun()
+
+    if "user" not in st.session_state:
+        st.sidebar.warning("Please select or create a user to continue.")
+        return None, None
+
+    st.sidebar.markdown(f"**Logged in as:** {st.session_state.user}")
+
+    # --- Add Task Form ---
+    st.sidebar.markdown("---")
+    st.sidebar.title("➕ Add New Task")
+
     with st.sidebar.form("add_task"):
-        user = st.text_input("👤 Your Name")
         task = st.text_input("📝 Task Description")
         points = st.slider("⭐ Points Value", 1, 10, 3)
         category = st.selectbox("🏷️ Category", list(CATEGORY_COLORS.keys()))
-        if st.form_submit_button("Add Task") and user and task:
-            add_task(user, task, points, category)
-            st.success("Task added successfully!💪")
+        deadline_category = st.selectbox("📅 Task Deadline", DEADLINE_CATEGORIES)
+        if st.form_submit_button("Add Task") and task:
+            add_task(st.session_state.user, task, points, category, deadline_category)
+            st.success("Task added successfully! 💪")
             st.rerun()
+
+    # --- View Options ---
     st.sidebar.markdown("---")
-    st.sidebar.title("View Options 🛠️")
+    st.sidebar.title("🛠️ View Options")
     dark_mode = st.sidebar.toggle("Dark Mode")
-    admin_mode = st.sidebar.checkbox("Admin Mode (View All Users)", value=True)
+    admin_mode = st.sidebar.checkbox("Admin Mode", value=False)
+
     return dark_mode, admin_mode
+
 
 # --- MAIN APP LAYOUT ---
 def main():
@@ -130,12 +242,25 @@ def main():
         4. Use filters to focus on specific users or categories.
         """)
 
+    with st.expander("🕒 Deadline Reference"):
+        st.markdown("""
+        **Here's what each deadline means:**
+
+        - ☀️ **Morning Deadline** — Complete before **11:00 AM**
+        - 🌤️ **Afternoon Deadline** — Complete before **5:00 PM**
+        - 🌇 **Evening Deadline** — Complete before **8:00 PM**
+        - 🌌 **End of Day** — Complete by **11:59 PM**
+
+        Use these to set realistic expectations for when tasks should be completed.
+        """)
+
+
 # --- ACTIVE TASKS ---
 def show_tasks(df, admin_mode):
     if df.empty:
         st.warning("No tasks found for the current user.")
         return  # Exit the function early
-    users = df['user'].unique() if admin_mode else [df['user'].iloc[0]]
+    users = df['user'].unique() 
     if len(users) == 0:
         st.info("No users found with tasks.")
         return
@@ -152,7 +277,12 @@ def show_tasks(df, admin_mode):
                 if checked and not task['status']:
                     complete_task(task['id'])
                     st.rerun()
-                st.markdown(f"{task['points']} pts | 🏷️ {task['category']}")
+                deadline = task["deadline_category"]
+                if deadline:
+                    st.markdown(f"⭐ {task['points']} pts| 🏷️ {task['category']} | {deadline} ")
+                else:
+                    st.markdown(f"⭐ {task['points']} pts| 🏷️ {task['category']} | 📅 No Deadline")
+
                 if admin_mode:
                     with st.expander("Edit Task"):
                         new_task = st.text_input("Edit description", value=task['task'], key=f"edit_{task['id']}_task")

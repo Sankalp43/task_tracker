@@ -6,3 +6,4 @@ opencv-python-headless  # Use headless version for Linux compatibility
 supabase
 altair
 python-dateutil
+yagmail
