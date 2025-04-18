@@ -179,8 +179,8 @@ SIGN_OFFS = {
     
 }
 
-def build_message(user):
-    name = user["user"]
+def build_message(name):
+    name = name
     tone = random.choice(list(TONE_GROUPS.keys()))
 
     message = random.choice(TONE_GROUPS[tone])
