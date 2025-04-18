@@ -24,7 +24,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          EMAIL_USER: ${{ secrets.SENDER_EMAIL }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
         run: |
           python send_daily_task_reminder.py
