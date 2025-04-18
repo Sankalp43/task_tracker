@@ -24,20 +24,37 @@ APP_PASSWORD = st.secrets["APP_PASSWORD"]  # Keep this secure
 yag = yagmail.SMTP(SENDER_EMAIL, APP_PASSWORD)
 
 def send_welcome_email(to_email, name):
-    subject = f"Welcome to Team Task Tracker, {name}! 🎉"
+    subject = f"Welcome to Task Tracker, {name}! 🎉"
     body = f"""
-    Hi {name},
+    <html>
+        <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; background-color: #f9f9f9; padding: 20px;">
+            <div style="max-width: 600px; margin: auto; background: #fff; border-radius: 10px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h2 style="color: #4CAF50;">Welcome aboard, {name}! 🚀</h2>
+                
+                <p style="font-size: 18px;">You're all set to crush tasks and track wins.</p>
+                
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                
+                <ul style="padding-left: 20px;">
+                    <li>✨ Add tasks in seconds</li>
+                    <li>🎯 Stay focused daily</li>
+                    <li>🏆 Earn points & celebrate wins</li>
+                </ul>
+                
+                <p style="margin-top: 30px;">Let’s make productivity fun.</p>
 
-    Welcome aboard! We're excited to have you using the Team Task Tracker 🚀.
+                <blockquote style="font-style: italic; color: #777; margin-top: 30px;">
+                    “Success is the sum of small efforts, repeated day in and day out.” – Robert Collier
+                </blockquote>
 
-    You can start adding tasks, earning points, and tracking your daily wins.
-    Let's get productive! 💪
-
-    Cheers,  
-    - Team Task Tracker
+                <p style="color: #888; font-size: 14px; margin-top: 40px;">– Team S.A.R.A 💡</p>
+            </div>
+        </body>
+    </html>
     """
     print(f"Sending email to {to_email}...")
     yag.send(to_email, subject, body)
+
 
 
 
