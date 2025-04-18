@@ -25,7 +25,7 @@ def send_reminders():
     print(f"Users with tasks today: {today_users}")
     all_users = get_users()
     print(f"All users: {all_users}")
-    yag = yagmail.SMTP(user=os.getenv("SENDER_EMAIL"), password=os.getenv("APP_PASSWORD"))
+    yag = yagmail.SMTP(user=os.getenv("SENDER_EMAIL"), password=os.getenv("EMAIL_PASS"))
     # yag = yagmail.SMTP(user=st.secrets["SENDER_EMAIL"], password=st.secrets["APP_PASSWORD"])
     for user in all_users:
         name, email = user["user"], user["mail"]
