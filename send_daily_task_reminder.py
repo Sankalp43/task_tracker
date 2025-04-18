@@ -70,7 +70,7 @@ TONE_GROUPS = {
     ],
 
     # 🎯 Focused / Encouraging
-    "Focus":[
+    "focus":[
     "Your goals are valid. Let’s take the first step. Add a task.",
     "Come on, even Batman had a to-do list.",
     "Small steps > no steps. Start with one task.",
@@ -209,8 +209,11 @@ def build_message(name):
             h2 {{
                 color: #444;
             }}
+            h3 {{
+                color: #666;
+                }}
             p {{
-                font-size: 16px;
+                font-size: 18px;
                 line-height: 1.6;
             }}
             .cta {{
@@ -233,10 +236,11 @@ def build_message(name):
     <body>
         <div class="container">
             <h2>{greeting}</h2>
-            <p>{message}</p>
+            <h3>{message}</h3>
             <a class="cta" href="{app_link}">🚀 Open Your Task Tracker</a>
-            <p class="footer">{sign_off}</p>
-            <p style="margin-top: 20px; font-weight: bold; color: #4CAF50;">— Team S.A.R.A</p>
+            <p>Click the button above to add your tasks and get started!</p>
+            <h3 class="footer">{sign_off}</h3>
+            <h4 style="margin-top: 20px; font-weight: bold; color: #4CAF50;">— Team S.A.R.A</h4>
         </div>
     </body>
     </html>
