@@ -1,0 +1,30 @@
+name: Daily Task Reminder
+
+on:
+  schedule:
+    - cron: '* * * * *'  # This means 10 AM UTC daily (adjust time as needed)
+
+jobs:
+  send_reminder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run the task reminder script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          EMAIL_USER: ${{ secrets.SENDER_EMAIL }}
+          EMAIL_PASS: ${{ secrets.APP_PASSWORD }}
+        run: |
+          python send_daily_task_reminder.py
