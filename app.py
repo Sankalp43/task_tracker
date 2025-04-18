@@ -7,7 +7,8 @@ from datetime import datetime
 from supabase import create_client, Client
 import hashlib
 import yagmail
-
+from datetime import datetime, time
+import math
 # --- SUPABASE CONFIGURATION ---
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
@@ -82,9 +83,17 @@ DEADLINE_CATEGORIES = [
     "⏳ No Deadline",
     "⏰ Morning",
     "🌤️ Afternoon",
-    "🌇 Evening ",
+    "🌇 Evening",
     "🌌 End of Day"
 ]
+
+DEADLINE_TIMES = {
+    "⏰ Morning": time(10, 0),
+    "🌤️ Afternoon": time(14, 0),
+    "🌇 Evening": time(18, 0),
+    "🌌 End of Day": time(23, 59),
+    "⏳ No Deadline": None
+}
 
 def add_task(user, task, points, category, deadline_category):
     supabase.table("tasks").insert({
@@ -256,42 +265,136 @@ def main():
 
 
 # --- ACTIVE TASKS ---
+import math
+
 def show_tasks(df, admin_mode):
     if df.empty:
         st.warning("No tasks found for the current user.")
         return  # Exit the function early
-    users = df['user'].unique() 
+    users = df['user'].unique()
     if len(users) == 0:
         st.info("No users found with tasks.")
         return
-    cols = st.columns(len(users))
-    for idx, user in enumerate(users):
-        with cols[idx]:
-            st.image(avatar_url(user), width=50)
-            st.markdown(f"**{user}**")
-            user_tasks = df[(df['user'] == user) & (~df['status'])]
-            for _, task in user_tasks.iterrows():
-                color = CATEGORY_COLORS.get(task['category'], "#ccc")
-                task_key = f"{task['id']}"
-                checked = st.checkbox(task['task'], key=task_key)
-                if checked and not task['status']:
-                    complete_task(task['id'])
-                    st.rerun()
-                deadline = task["deadline_category"]
-                if deadline:
-                    st.markdown(f"⭐ {task['points']} pts| 🏷️ {task['category']} | {deadline} ")
-                else:
-                    st.markdown(f"⭐ {task['points']} pts| 🏷️ {task['category']} | 📅 No Deadline")
+    # Define number of users per row
+    users_per_row = 3  # Or whatever you want as the max columns per row
+    total_rows = math.ceil(len(users) / users_per_row)
 
-                if admin_mode:
-                    with st.expander("Edit Task"):
-                        new_task = st.text_input("Edit description", value=task['task'], key=f"edit_{task['id']}_task")
-                        new_points = st.slider("Edit points", 1, 10, value=task['points'], key=f"edit_{task['id']}_points")
-                        new_category = st.selectbox("Edit category", list(CATEGORY_COLORS.keys()), index=list(CATEGORY_COLORS.keys()).index(task['category']), key=f"edit_{task['id']}_cat")
-                        if st.button("Save Changes", key=f"save_{task['id']}"):
-                            edit_task(task['id'], new_task, new_points, new_category)
-                            st.success("Task updated!")
+    # Create each row of columns
+    for row in range(total_rows):
+        cols = st.columns(users_per_row)
+        # Determine the range of users to show in this row
+        for idx in range(users_per_row):
+            user_idx = row * users_per_row + idx
+            if user_idx < len(users):  # Check if user exists in the current row
+                user = users[user_idx]
+                with cols[idx]:
+                    st.image(avatar_url(user), width=50)
+                    st.markdown(f"**{user}**")
+                    user_tasks = df[(df['user'] == user) & (~df['status'])]
+                    for _, task in user_tasks.iterrows():
+                        color = CATEGORY_COLORS.get(task['category'], "#ccc")
+                        task_key = f"{task['id']}"
+                        checked = st.checkbox(task['task'], key=task_key)
+                        if checked and not task['status']:
+                            complete_task(task['id'])
                             st.rerun()
+                        deadline = task["deadline_category"]
+                        if deadline:
+                            st.markdown(f"⭐ {task['points']} pts | 🏷️ {task['category']} | {deadline} ")
+                        else:
+                            st.markdown(f"⭐ {task['points']} pts | 🏷️ {task['category']} | 📅 No Deadline")
+
+                    if admin_mode:
+                        with st.expander("Edit Task"):
+                            new_task = st.text_input("Edit description", value=task['task'], key=f"edit_{task['id']}_task")
+                            new_points = st.slider("Edit points", 1, 10, value=task['points'], key=f"edit_{task['id']}_points")
+                            new_category = st.selectbox("Edit category", list(CATEGORY_COLORS.keys()), index=list(CATEGORY_COLORS.keys()).index(task['category']), key=f"edit_{task['id']}_cat")
+                            if st.button("Save Changes", key=f"save_{task['id']}"):
+                                edit_task(task['id'], new_task, new_points, new_category)
+                                st.success("Task updated!")
+                                st.rerun()
+        # Add space after each row of users (to handle varying lengths of user task lists)
+        st.write("")  # This will add some space after each row of columns
+
+# def show_tasks(df, admin_mode):
+#     if df.empty:
+#         st.warning("No tasks found for the current user.")
+#         return  # Exit the function early
+#     users = df['user'].unique() 
+#     # if len(users) == 0:
+#     #     st.info("No users found with tasks.")
+#     #     return
+#     # cols = st.columns(min(len(users), 3))  # Max 5 columns per row
+#     # for idx, user in enumerate(users):
+#     if len(users) == 0:
+#         st.info("No users found with tasks.")
+#         return
+#     # Define number of users per row
+#     users_per_row = 3  # Or whatever you want as the max columns per row
+#     total_rows = math.ceil(len(users) / users_per_row)
+
+#     # Create each row of columns
+#     for row in range(total_rows):
+#         cols = st.columns(users_per_row)
+#         # Determine the range of users to show in this row
+#         for idx in range(users_per_row):
+#             user_idx = row * users_per_row + idx
+#             if user_idx < len(users):  # Check if user exists in the current row
+#                 user = users[user_idx]
+#         with cols[idx]:
+#             st.image(avatar_url(user), width=50)
+#             st.markdown(f"**{user}**")
+#             user_tasks = df[(df['user'] == user) & (~df['status'])]
+#             for _, task in user_tasks.iterrows():
+#                 color = CATEGORY_COLORS.get(task['category'], "#ccc")
+#                 task_key = f"{task['id']}"
+#                 checked = st.checkbox(task['task'], key=task_key)
+#                 if checked and not task['status']:
+#                     complete_task(task['id'])
+#                     st.rerun()
+#                 deadline = task["deadline_category"]
+#                 if deadline:
+#                     st.markdown(f"⭐ {task['points']} pts| 🏷️ {task['category']} | {deadline} ")
+#                 else:
+#                     st.markdown(f"⭐ {task['points']} pts| 🏷️ {task['category']} | 📅 No Deadline")
+
+#                 if admin_mode:
+#                     with st.expander("Edit Task"):
+#                         new_task = st.text_input("Edit description", value=task['task'], key=f"edit_{task['id']}_task")
+#                         new_points = st.slider("Edit points", 1, 10, value=task['points'], key=f"edit_{task['id']}_points")
+#                         new_category = st.selectbox("Edit category", list(CATEGORY_COLORS.keys()), index=list(CATEGORY_COLORS.keys()).index(task['category']), key=f"edit_{task['id']}_cat")
+#                         if st.button("Save Changes", key=f"save_{task['id']}"):
+#                             edit_task(task['id'], new_task, new_points, new_category)
+#                             st.success("Task updated!")
+#                             st.rerun()
+    # cols = st.columns(len(users))
+    # for idx, user in enumerate(users):
+    #     with cols[idx]:
+    #         st.image(avatar_url(user), width=50)
+    #         st.markdown(f"**{user}**")
+    #         user_tasks = df[(df['user'] == user) & (~df['status'])]
+    #         for _, task in user_tasks.iterrows():
+    #             color = CATEGORY_COLORS.get(task['category'], "#ccc")
+    #             task_key = f"{task['id']}"
+    #             checked = st.checkbox(task['task'], key=task_key)
+    #             if checked and not task['status']:
+    #                 complete_task(task['id'])
+    #                 st.rerun()
+    #             deadline = task["deadline_category"]
+    #             if deadline:
+                #     st.markdown(f"⭐ {task['points']} pts| 🏷️ {task['category']} | {deadline} ")
+                # else:
+                #     st.markdown(f"⭐ {task['points']} pts| 🏷️ {task['category']} | 📅 No Deadline")
+
+                # if admin_mode:
+                #     with st.expander("Edit Task"):
+                #         new_task = st.text_input("Edit description", value=task['task'], key=f"edit_{task['id']}_task")
+                #         new_points = st.slider("Edit points", 1, 10, value=task['points'], key=f"edit_{task['id']}_points")
+                #         new_category = st.selectbox("Edit category", list(CATEGORY_COLORS.keys()), index=list(CATEGORY_COLORS.keys()).index(task['category']), key=f"edit_{task['id']}_cat")
+                #         if st.button("Save Changes", key=f"save_{task['id']}"):
+                #             edit_task(task['id'], new_task, new_points, new_category)
+                #             st.success("Task updated!")
+                #             st.rerun()
 
 # --- LEADERBOARD ---
 def show_leaderboard(df):
