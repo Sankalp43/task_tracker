@@ -27,4 +27,4 @@ jobs:
           EMAIL_USER: ${{ secrets.SENDER_EMAIL }}
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
         run: |
-          python send_nightly_summary.py
+          python nightly_task_summary.py
