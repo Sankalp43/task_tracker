@@ -1,0 +1,30 @@
+name: Nightly Task Summary
+
+on:
+  schedule:
+    - cron: '30 16 * * *'  # 10 PM IST == 4:30 PM UTC
+
+jobs:
+  send_nightly_summary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run the nightly summary script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          EMAIL_USER: ${{ secrets.SENDER_EMAIL }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+        run: |
+          python send_nightly_summary.py
